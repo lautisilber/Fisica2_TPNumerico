@@ -1,6 +1,9 @@
 #faquin DS_Store
 .DS_Store
 
+# VSCode stuff we don't need
+.vscode/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
