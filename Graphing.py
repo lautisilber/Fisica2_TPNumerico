@@ -17,10 +17,51 @@ class Graphing2D:
         self._headers = {}
         self._working_headers = ['0', '1']
 
+        for arg in args:
+            self.add_data(arg)
+
+        self._legends = []
+        self._x = 0
+        self._y = 1
+        self._x_error = None
+        self._y_error = None
+
+        self._errorbar_options = {
+            'ecolor' : DEFAULT_COLORS[0],
+            'elinewidth' : None,
+            'capsize' : 0.0,
+            'capthick' : None,
+            'barsabove' : False,
+            'lolims' : False,
+            'uplims' : False,
+            'xlolims' : False,
+            'xuplims' : False,
+            'errorevery' : 1
+        }
+
+        self.set_working_data(0, 1)
+
+    def add_data(self, *args):
         if not args:
             raise ParameterMissing
 
+        processed_args = []
+
         for arg in args:
+            if isinstance(arg, str):
+                processed_args.append(arg)
+            elif isinstance(arg, list) or isinstance(arg, np.ndarray):
+                if not False in [self._is_number(e) for e in arg]:
+                    # list of numbers
+                    processed_args.append(arg)
+                elif not False in [isinstance(e, list) or isinstance(e, np.ndarray) or isinstance(e, str) for e in arg]:
+                    # list of lists or directories
+                    for e in arg:
+                        processed_args.append(e)
+                else:
+                    raise BadParameter
+
+        for arg in processed_args:
             if isinstance(arg, str):
                 if arg.endswith('.csv'):
                     _file = pd.read_csv(arg, sep=';')
@@ -47,27 +88,6 @@ class Graphing2D:
 
             else:
                 raise BadParameter
-
-        self._legends = []
-        self._x = 0
-        self._y = 1
-        self._x_error = None
-        self._y_error = None
-
-        self._errorbar_options = {
-            'ecolor' : DEFAULT_COLORS[0],
-            'elinewidth' : None,
-            'capsize' : 0.0,
-            'capthick' : None,
-            'barsabove' : False,
-            'lolims' : False,
-            'uplims' : False,
-            'xlolims' : False,
-            'xuplims' : False,
-            'errorevery' : 1
-        }
-
-        self.set_working_data(0, 1)
 
     def set_working_data(self, x_name, y_name, x_error_name=None, y_error_name=None):
         x = self._get_column_input(x_name)
@@ -309,11 +329,11 @@ class Graphing2D:
                 _colour = kwargs['color']
 
         if 'x_shift' in kwargs:
-            if not (isinstance(kwargs['x_shift'], float) or isinstance(kwargs['x_shift'], int)):
+            if not self._is_number(kwargs['x_shift']):
                 raise BadParameter
             _x_shift = kwargs['x_shift']
         if 'y_shift' in kwargs:
-            if not (isinstance(kwargs['y_shift'], float) or isinstance(kwargs['y_shift'], int)):
+            if not self._is_number(kwargs['y_shift']):
                 raise BadParameter
             _y_shift = kwargs['y_shift']
 
@@ -329,12 +349,12 @@ class Graphing2D:
                     if not (isinstance(kwargs['marker'], str) or isinstance(kwargs['marker'], int)):
                         raise BadParameter
                     if isinstance(kwargs['marker'], str):
-                        if kwargs['marker'] in _SCATTER_STYLES or (kwargs['marker'].startswith('$') and kwargs['marker'].endswith('4')):
+                        if kwargs['marker'] in _SCATTER_STYLES or (kwargs['marker'].startswith('$') and kwargs['marker'].endswith('$')):
                             _marker = kwargs['marker']
                     elif kwargs['marker'] in _SCATTER_STYLES:
                         _marker = kwargs['marker']
                 if 's' in kwargs:
-                    if not (isinstance(kwargs['s'], float) or isinstance(kwargs['s'], int)):
+                    if not self._is_number(kwargs['s']):
                         raise BadParameter
                     _s = kwargs['s']
 
@@ -360,6 +380,12 @@ class Graphing2D:
         elif isinstance(param, int):
             return param
         raise BadParameter
+
+    @staticmethod
+    def _is_number(val):
+        if isinstance(val, int) or isinstance(val, float) or isinstance(val, np.int64) or isinstance(val, np.float):
+            return True
+        return False
 
     def show(self):
         _show_legends = False
@@ -413,8 +439,8 @@ if __name__ == '__main__':
     aerror = [1 for i in a]
     berror = [0.75 for i in a]
 
-    g = Graphing2D(a, b, aerror, berror)
-    g.add_marker(a[5], b[5], legend='supermarker', colour=DEFAULT_COLORS[6], marker='H', s=1500)
+    g = Graphing2D([a, b], [aerror, berror])
+    g.add_marker(a[5], b[5], legend='supermarker', colour=DEFAULT_COLORS[6], marker='H', s=150)
     g.set_working_data(0, 1, 2, 3)
     g.set_errorbars_options(capsize=1.5, ecolor='cyan')
     g.add_plot(errorbars=True)
